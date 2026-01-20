@@ -13,11 +13,12 @@ A RESTful API for Shayan Umair's Personal AI Assistant - A professional AI chatb
 
 ```
 .
-├── backend/           # Node.js Express API server
-│   ├── server.js      # Main server file with Swagger docs
-│   ├── package.json
-│   └── API_DOCUMENTATION.md  # Detailed API documentation
-├── api/               # Vercel serverless functions
+├── server.js          # Main Express API server with Swagger docs
+├── package.json       # Dependencies and scripts
+├── .env               # Environment variables (OPENAI_API_KEY, PORT)
+├── API_DOCUMENTATION.md  # Detailed API documentation
+├── SWAGGER_GUIDE.md   # Swagger UI testing guide
+├── api/               # Vercel serverless functions (optional)
 │   ├── chat.js
 │   └── package.json
 └── vercel.json        # Vercel deployment configuration
@@ -39,13 +40,12 @@ A RESTful API for Shayan Umair's Personal AI Assistant - A professional AI chatb
 
 2. **Install dependencies**
    ```bash
-   cd backend
    npm install
    ```
 
 3. **Create environment file**
    
-   Create `backend/.env`:
+   Create `.env` in the root directory:
    ```
    OPENAI_API_KEY=your_openai_api_key_here
    PORT=5000
@@ -191,8 +191,7 @@ curl -X POST http://localhost:5000/chat \
 
 ### System Prompt
 The AI assistant is configured with a custom system prompt in:
-- `backend/server.js` (for local development)
-- `api/chat.js` (for Vercel deployment)
+- `server.js` (main server file)
 
 You can modify the `SYSTEM_PROMPT` constant to change the assistant's behavior and knowledge base.
 

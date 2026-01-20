@@ -2,22 +2,30 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/server.js",
+      "src": "server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api-docs",
-      "dest": "/backend/server.js"
+      "dest": "/server.js"
+    },
+    {
+      "src": "/api-docs.json",
+      "dest": "/server.js"
     },
     {
       "src": "/health",
-      "dest": "/backend/server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/chat",
-      "dest": "/backend/server.js"
+      "dest": "/server.js"
+    },
+    {
+      "src": "/",
+      "dest": "/server.js"
     }
   ]
 }

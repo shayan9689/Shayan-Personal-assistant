@@ -5,7 +5,6 @@
 ### Local Development
 1. Start the server:
    ```bash
-   cd backend
    npm start
    ```
 
