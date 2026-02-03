@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import nodemailer from 'nodemailer';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,10 @@ const swaggerOptions = {
       {
         name: 'Chat',
         description: 'Chat with the AI assistant',
+      },
+      {
+        name: 'Contact',
+        description: 'Contact form endpoints',
       },
     ],
   },
@@ -82,6 +87,15 @@ app.get('/', (req, res) => {
 // Initialize OpenAI client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
+});
+
+// Initialize Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_ADDRESS,
+    pass: process.env.EMAIL_APP_PASSWORD,
+  },
 });
 
 // System prompt
@@ -287,6 +301,187 @@ app.post('/chat', async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ reply: 'Assistant is currently unavailable.' });
+  }
+});
+
+/**
+ * @swagger
+ * /contact:
+ *   post:
+ *     summary: Send a contact form message
+ *     description: |
+ *       Submit a contact form message. The form data will be sent to Shayan's email address
+ *       in a readable format.
+ *       
+ *       Required fields:
+ *       - Your Name
+ *       - Your Email
+ *       - Subject
+ *       - Your Message
+ *     tags: [Contact]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - subject
+ *               - message
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: The sender's name
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The sender's email address
+ *                 example: "john.doe@example.com"
+ *               subject:
+ *                 type: string
+ *                 description: The subject of the message
+ *                 example: "Inquiry about AI services"
+ *               message:
+ *                 type: string
+ *                 description: The message content
+ *                 example: "I would like to discuss potential collaboration opportunities."
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Email sent successfully"
+ *             examples:
+ *               success:
+ *                 summary: Email sent
+ *                 value:
+ *                   success: true
+ *                   message: "Email sent successfully"
+ *       400:
+ *         description: Bad request - missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "All fields are required"
+ *             examples:
+ *               missing:
+ *                 summary: Missing fields
+ *                 value:
+ *                   success: false
+ *                   error: "All fields are required"
+ *       500:
+ *         description: Internal server error - failed to send email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to send email"
+ *             examples:
+ *               error:
+ *                 summary: Email sending failed
+ *                 value:
+ *                   success: false
+ *                   error: "Failed to send email"
+ */
+app.post('/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'All fields are required (name, email, subject, message)'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    // Format email content
+    const mailOptions = {
+      from: process.env.EMAIL_ADDRESS,
+      to: process.env.EMAIL_ADDRESS,
+      replyTo: email,
+      subject: `Contact Form: ${subject}`,
+      text: `
+New Contact Form Submission
+
+Name: ${name}
+Email: ${email}
+Subject: ${subject}
+
+Message:
+${message}
+
+---
+This message was sent from your website contact form.
+Reply directly to this email to respond to ${name} at ${email}.
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">New Contact Form Submission</h2>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            <p><strong>Subject:</strong> ${subject}</p>
+          </div>
+          <div style="background-color: #fff; padding: 20px; border-left: 4px solid #007bff; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">Message:</h3>
+            <p style="white-space: pre-wrap; color: #555;">${message.replace(/\n/g, '<br>')}</p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px;">
+            This message was sent from your website contact form.<br>
+            Reply directly to this email to respond to ${name} at ${email}.
+          </p>
+        </div>
+      `
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    res.json({
+      success: true,
+      message: 'Email sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send email. Please try again later.'
+    });
   }
 });
 
