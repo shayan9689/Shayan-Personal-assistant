@@ -489,7 +489,7 @@ Reply directly to this email to respond to ${name} at ${email}.
 export default app;
 
 // Only listen if running locally (not in Vercel)
-if (!process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
